@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   addIntervalId,
@@ -7,29 +7,59 @@ import {
   setIsWorking,
   startPomodoro,
 } from "./redux/PomodoroState";
-
+import { changePomodoroCountInActivePomodor } from "./redux/ActioveToDoPomodoro";
+const titleElem = document.querySelector("title");
 function Timer() {
   const dispatch = useDispatch();
-  const [textOnButton, setTextOnButton] = useState("Старт");
-  const timeLeft = useSelector((state) => {
-    return state.pomodoro.timeleft;
-  });
   const isWorking = useSelector((state) => {
     return state.pomodoro.isWorking;
   });
+  const timeLeft = useSelector((state) => {
+    return state.pomodoro.timeleft;
+  });
+  const activePomodoro = useSelector((state) => {
+    return state.activePomodor.title;
+  });
+  const [textOnButton, setTextOnButton] = useState("Старт");
+  const PomodoroCountFromState = useSelector(
+    (state) => state.pomodoro.POMODORO_COUNT
+  );
+  useEffect(() => {
+    if (PomodoroCountFromState) {
+      dispatch(changePomodoroCountInActivePomodor());
+    }
+  }, [PomodoroCountFromState]);
+  useEffect(() => {
+    if (!isWorking) {
+      setTextOnButton("Старт");
+    }
+  }, [isWorking]);
+
+  useEffect(() => {
+    handleResetTimer();
+  }, [activePomodoro]);
+  useEffect(() => {
+    titleElem.textContent = `${
+      Math.floor(timeLeft / 60) < 10
+        ? "0" + Math.floor(timeLeft / 60)
+        : Math.floor(timeLeft / 60)
+    }:${timeLeft % 60 < 10 ? "0" + (timeLeft % 60) : timeLeft % 60}`;
+  }, [timeLeft]);
 
   function handleStartPomodoro() {
-    if (isWorking) {
-      dispatch(clearIntervalId());
-      dispatch(setIsWorking());
-      setTextOnButton("Старт");
-    } else {
-      const intervalId = setInterval(() => {
-        dispatch(startPomodoro());
-      }, 1000);
-      dispatch(addIntervalId(intervalId));
-      dispatch(setIsWorking());
-      setTextOnButton("Пауза");
+    if (activePomodoro) {
+      if (isWorking) {
+        dispatch(clearIntervalId());
+        dispatch(setIsWorking());
+        setTextOnButton("Старт");
+      } else {
+        const intervalId = setInterval(() => {
+          dispatch(startPomodoro());
+        }, 1000);
+        dispatch(addIntervalId(intervalId));
+        dispatch(setIsWorking());
+        setTextOnButton("Пауза");
+      }
     }
   }
   function handleResetTimer() {
@@ -50,7 +80,9 @@ function Timer() {
         </span>
       </p>
 
-      <p className="title">Написать Pomodoro</p>
+      <p className="title">
+        {activePomodoro ? activePomodoro : "Написать Pomodoro"}
+      </p>
       <div className="control">
         <button
           className="control__btn control__btn_start"
